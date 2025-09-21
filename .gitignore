@@ -15,7 +15,7 @@ __pycache__/
 .env
 
 # Archivos de VS Code
-.vscode/
+.vscode
 
 #archivo excel
 *.xlsx
@@ -23,3 +23,7 @@ __pycache__/
 *.parquet
 
 *.pptx
+
+# Agregar mlflow training
+mlartifacts/
+*.db
