@@ -99,7 +99,7 @@ Implementa la clase `TrainMlflowOptuna`, que extiende el entrenamiento con MLflo
 - Registrar automáticamente los resultados y el mejor modelo en MLflow.
 - Soporta varios algoritmos y métricas de optimización (accuracy, f1, etc.).
 
-### models/base_model.ipynb
+### models/task_train.ipynb (Orchestator.py)
 Notebook que integra todo el flujo de procesamiento y modelado:
 - Carga y limpieza de datos clínicos.
 - Ingeniería de características y codificación.
