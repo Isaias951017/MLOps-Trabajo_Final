@@ -1661,6 +1661,23 @@ wheels = [
 ]
 
 [[package]]
+name = "optuna-integration"
+version = "4.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "optuna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/99/7828608f7b2612500f81b332f6d36e15b02d9999e9d03e614ffe32904bf2/optuna_integration-4.5.0.tar.gz", hash = "sha256:e0b917830dd10de63e5f288c3932e1b20f120bae640cb28fbf63fbbedb970e7d", size = 86492, upload-time = "2025-08-18T06:36:58.247Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/3a/af425cfd30aede975cae592285bccf384f0dbd6bd4a0a817ef362cb4fe5d/optuna_integration-4.5.0-py3-none-any.whl", hash = "sha256:88a15aa7cc3020f2d58cb321d83f9fbf7c641a752e81a5b595aaa0f9d2c4e0df", size = 99113, upload-time = "2025-08-18T06:36:56.954Z" },
+]
+
+[package.optional-dependencies]
+mlflow = [
+    { name = "mlflow" },
+]
+
+[[package]]
 name = "orjson"
 version = "3.11.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1984,6 +2001,7 @@ dependencies = [
     { name = "numpy" },
     { name = "openpyxl" },
     { name = "optuna" },
+    { name = "optuna-integration", extra = ["mlflow"] },
     { name = "pandas" },
     { name = "plotly" },
     { name = "pyodbc" },
@@ -2006,6 +2024,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.3.3" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "optuna", specifier = ">=4.5.0" },
+    { name = "optuna-integration", extras = ["mlflow"], specifier = ">=4.5.0" },
     { name = "pandas", specifier = ">=2.3.2" },
     { name = "plotly", specifier = ">=6.3.0" },
     { name = "pyodbc", specifier = ">=5.2.0" },
