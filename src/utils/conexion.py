@@ -22,11 +22,12 @@ class SQLConnection:
         engine = create_engine(connection_string)
         return engine
     
-    def generate_dataframe(self):
+    def generate_dataframe(self, nregistros=10000):
+        self.nregistros = nregistros
         with open(self.sql_path, "r", encoding="utf-8") as file: 
             query = file.read()
         
         engine = self.create_engine_connection()
         with engine.connect() as connection:
             df = pd.read_sql(text(query), connection, params=self.params)
-        return df
+        return df.head(self.nregistros)

@@ -18,6 +18,7 @@ dependencies = [
     "optuna-integration[mlflow]>=4.5.0",
     "pandas>=2.3.2",
     "plotly>=6.3.0",
+    "prefect>=3.4.20",
     "pyodbc>=5.2.0",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
