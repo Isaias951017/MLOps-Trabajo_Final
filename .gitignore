@@ -26,4 +26,5 @@ __pycache__/
 
 # Agregar mlflow training
 mlartifacts/
+mlruns/
 *.db

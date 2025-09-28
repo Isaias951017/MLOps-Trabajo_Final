@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 import spacy
-from sklearn import preprocessing
+from sklearn.preprocessing import LabelEncoder
 
 class PreprocesadorTexto:
     def __init__(self, df, stopwords={
@@ -42,7 +42,7 @@ class PreprocesadorTexto:
         )
 
     def label_encodering(self, columna, nueva_columna, tipo="sexo"):
-        label_encoder = preprocessing.LabelEncoder()
+        label_encoder = LabelEncoder()
         self.df[nueva_columna] = label_encoder.fit_transform(self.df[columna])
         mapping_df = pd.DataFrame({
             tipo.capitalize(): label_encoder.classes_,

@@ -73,8 +73,11 @@ class TrainMlflowOptuna:
         self.vectorizer_model = vectorizer_model
         self.X_train = X_train
         self.X_test = X_test
-        X_train_vect = self.vectorizer_model.fit_transform(X_train[columns_to_vectorize])
-        X_test_vect = self.vectorizer_model.transform(X_test[columns_to_vectorize])
+        # Ensure the column is string type (convert lists to strings if necessary)
+        X_train_col = X_train[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
+        X_test_col = X_test[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
+        X_train_vect = self.vectorizer_model.fit_transform(X_train_col)
+        X_test_vect = self.vectorizer_model.transform(X_test_col)
         return X_train_vect, X_test_vect
 
 
