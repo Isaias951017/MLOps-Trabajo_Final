@@ -9,6 +9,7 @@ from sklearn.metrics import (accuracy_score, f1_score, precision_score,
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack, csr_matrix
 
 warnings.filterwarnings('ignore')
 
@@ -69,17 +70,38 @@ class TrainMlflowOptuna:
         )
         return X_train, X_test, y_train, y_test
 
-    def vectorizer(self, X_train, X_test, vectorizer_model=TfidfVectorizer(), columns_to_vectorize="concatenada"):
+    # def vectorizer(self, X_train, X_test, vectorizer_model=TfidfVectorizer(decode_error='ignore'), columns_to_vectorize="concatenada"):
+    #     self.vectorizer_model = vectorizer_model
+    #     self.X_train = X_train
+    #     self.X_test = X_test
+    #     # Ensure the column is string type (convert lists to strings if necessary)
+    #     # X_train_col = X_train[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
+    #     # X_test_col = X_test[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
+    #     X_train_vect = self.vectorizer_model.fit_transform(X_train[columns_to_vectorize])
+    #     X_test_vect = self.vectorizer_model.transform(X_test[columns_to_vectorize])
+    #     return X_train_vect, X_test_vect
+
+   
+
+    def vectorizer(self, X_train, X_test, vectorizer_model=TfidfVectorizer(decode_error='ignore'), columns_to_vectorize="concatenada"):
         self.vectorizer_model = vectorizer_model
         self.X_train = X_train
         self.X_test = X_test
-        # Ensure the column is string type (convert lists to strings if necessary)
-        X_train_col = X_train[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
-        X_test_col = X_test[columns_to_vectorize].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
-        X_train_vect = self.vectorizer_model.fit_transform(X_train_col)
-        X_test_vect = self.vectorizer_model.transform(X_test_col)
-        return X_train_vect, X_test_vect
 
+        # Vectoriza la columna de texto
+        X_train_vect = self.vectorizer_model.fit_transform(X_train[columns_to_vectorize])
+        X_test_vect = self.vectorizer_model.transform(X_test[columns_to_vectorize])
+
+        # Selecciona las columnas numéricas (todas menos la de texto)
+        numeric_cols = [col for col in X_train.columns if col != columns_to_vectorize]
+        X_train_numeric = X_train[numeric_cols].values
+        X_test_numeric = X_test[numeric_cols].values
+
+        # Concatena las features vectorizadas y las numéricas
+        X_train_final = hstack([X_train_vect, csr_matrix(X_train_numeric)])
+        X_test_final = hstack([X_test_vect, csr_matrix(X_test_numeric)])
+
+        return X_train_final, X_test_final
 
     def create_pipeline_train(self, model):
         """Create pipeline with a specific model instance."""
