@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use('Agg')
 import json
 from datetime import datetime
 import sys
@@ -19,6 +17,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (accuracy_score, f1_score, precision_score,
                              recall_score)
 from train_with_mlflow_optuna import TrainMlflowOptuna
+import matplotlib
+matplotlib.use('Agg')
 
 
 @task(name="etl_dataset", retries=2, retry_delay_seconds=10)
@@ -48,7 +48,7 @@ def task_generate_data(nregistros: int = 10000, db_server=os.getenv("DB_SERVER")
     df_conexion = sqlconection.generate_dataframe(nregistros)
     df_eda = EDAdataset(df_conexion)
     df = df_eda.dataset_eda(df_conexion)
-        
+    
     # Create summary artifact
     summary_df = pd.DataFrame({
         'Metric': ['Total Samples', 'Total Features', 'Missing Values'],
@@ -89,6 +89,12 @@ def task_feature_engineering(df, stopwords={
     initial_columns = len(df.columns)
     preprocesador = PreprocesadorTexto(df, stopwords=stopwords)
     df_engineered, _ = preprocesador.procesar(columna_texto=columna_texto, columna_sexo=columna_sexo, columna_grupo=columna_grupo)
+    
+    # Convert concatenada column to string format (join tokens if it's a list)
+    if 'concatenada' in df_engineered.columns:
+        df_engineered['concatenada'] = df_engineered['concatenada'].apply(
+            lambda x: ' '.join(x) if isinstance(x, list) else str(x)
+        )
     
     # Create feature engineering summary
     feature_summary = pd.DataFrame({
@@ -133,8 +139,8 @@ def task_train_with_optuna(
     logger = get_run_logger()
     logger.info(f"Starting Optuna optimization for {model_type} with {n_trials} trials...")
     
-    # Define Training Columns
-    training_columns = ["concatenada", "sexo_codificado"]
+    # Define Training Columns - For now, let's use only the text column to avoid the mixed feature issue
+    training_columns = ["concatenada"]
     
     # Define target column
     target_column = 'grupo_codificado'
@@ -166,7 +172,7 @@ def task_train_with_optuna(
     mlflow.set_experiment(f"prefect_{model_type.lower()}_training")
     mlflow.sklearn.autolog()
     
-    # Create trainer
+    # Create trainer with only text columns
     trainer = TrainMlflowOptuna(
         df=df,
         target_column=target_column,
@@ -175,7 +181,8 @@ def task_train_with_optuna(
         n_trials=n_trials,
         optimization_metric=optimization_metric,
         param_distributions=param_distributions,
-        model_params=fixed_params
+        model_params=fixed_params,
+        training_columns=training_columns
     )
     
     # Run optimization
@@ -212,16 +219,25 @@ def task_train_with_optuna(
         description=f"Best Hyperparameters for {model_type}"
     )
     
-    # Calculate validation metrics
-    X_test = df[training_columns][:100]  # Sample for quick validation
-    y_test = df[target_column][:100]
-    y_pred = best_pipeline.predict(X_test)
+    # For simple validation metrics, let's use the test split that was already done by the trainer
+    # We'll calculate basic metrics using the training data split
+    X_train, X_test, y_train, y_test = trainer.train_test_split()
+    
+    # Get the vectorized data
+    X_train_vect, X_test_vect = trainer.vectorizer(X_train, X_test)
+    
+    # Use a small sample for validation - fix the sparse matrix length issue
+    sample_size = min(100, X_test_vect.shape[0])  # Use .shape[0] instead of len()
+    
+    # Get predictions on the vectorized test data (sample)
+    y_pred = best_pipeline.predict(X_test_vect[:sample_size])
+    y_true = y_test.iloc[:sample_size]
     
     metrics_dict = {
-        'accuracy': accuracy_score(y_test, y_pred),
-        'precision': precision_score(y_test, y_pred, average='weighted'),
-        'recall': recall_score(y_test, y_pred, average='weighted'),
-        'f1': f1_score(y_test, y_pred, average='weighted')
+        'accuracy': accuracy_score(y_true, y_pred),
+        'precision': precision_score(y_true, y_pred, average='weighted', zero_division=0),
+        'recall': recall_score(y_true, y_pred, average='weighted', zero_division=0),
+        'f1': f1_score(y_true, y_pred, average='weighted', zero_division=0)
     }
     
     logger.info(f"Optimization complete! Best {optimization_metric}: {study.best_value:.4f}")
@@ -331,7 +347,7 @@ def train_model_flow(
     Main Prefect flow for training models with Optuna optimization.
     
     Args:
-        n_samples: Number of samples to generate
+        nregistros: Number of samples to generate
         model_type: Type of model to train
         n_trials: Number of Optuna trials
         optimization_metric: Metric to optimize
@@ -345,9 +361,8 @@ def train_model_flow(
     # Task 1: Generate data
     df = task_generate_data(nregistros=nregistros)
     
-    # Task 2: Feature engineering
+    # Task 2: Feature engineering (this now handles the string conversion internally)
     df_engineered = task_feature_engineering(df)
-    df_engineered['concatenada'] = df_engineered['concatenada'].apply(lambda x: ' '.join(x) if isinstance(x, list) else x)
     
     # Task 3: Train with Optuna
     best_pipeline, best_run_id, study, metrics_dict = task_train_with_optuna(
@@ -397,7 +412,7 @@ def compare_models_flow(
     Flow to compare multiple models with Optuna optimization.
     
     Args:
-        n_samples: Number of samples to generate
+        nregistros: Number of samples to generate
         n_trials: Number of Optuna trials per model
         
     Returns:
@@ -467,6 +482,6 @@ if __name__ == "__main__":
         n_trials=10,
         optimization_metric="accuracy"
     )
-    
+
     # Example 2: Compare multiple models
     # results = compare_models_flow(n_samples=5000, n_trials=10)
